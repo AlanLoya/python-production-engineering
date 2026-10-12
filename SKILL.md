@@ -1,6 +1,6 @@
 ---
 name: python-production-engineering
-description: Use for Python backend feature work, bug fixes, refactors, API or worker changes, validation failures, security-sensitive code, architecture decisions, database access, migrations, or test design. Apply when the task touches FastAPI, Pydantic, SQLAlchemy, Alembic, async Python, background workers, authorization, secrets, external integrations, or Python monorepo tooling.
+description: Use for Python backend feature work, bug fixes, refactors, API or worker changes, validation failures, security-sensitive code, architecture decisions, database access, migrations, or test design. Apply when the task touches FastAPI, Pydantic, SQLAlchemy, Alembic, async Python, background workers, authorization, secrets, external integrations, or Python project tooling.
 license: MIT
 metadata:
   author: AlanLoya
@@ -17,7 +17,7 @@ Use this skill to take Python changes from local understanding to production evi
 2. **State the contract.** Define inputs, outputs, failure modes, authorization rules, side effects, and compatibility constraints before editing. Prefer an existing local abstraction over a new framework or helper. Completion means the expected behavior is expressible as focused examples or assertions.
 3. **Implement at the owning boundary.** Keep transport, domain, persistence, and integration concerns separate. Use typed interfaces and dependency injection where the codebase already supports them. Preserve public APIs unless the task explicitly requires a contract change. Completion means the happy path and relevant failure paths are implemented without weakening existing invariants.
 4. **Add focused tests.** Cover the changed behavior, invalid inputs, denied access, not-found or conflict cases, external failures, and important async or transaction boundaries. Use fixtures for setup, parameterization for equivalent cases, and mocks only at the integration boundary. Completion means the focused test command passes and the test names explain the contract.
-5. **Run layered validation.** Start with the narrow package target, then run the repository's affected validation, and use full validation for shared or high-risk changes. Completion means formatting, lint, type checking, tests, and coverage requirements pass, or every pre-existing failure is reported with evidence.
+5. **Run layered validation.** Start with the narrowest project or package checks, then run the repository's broader validation for shared or high-risk changes. Completion means formatting, lint, type checking, tests, and coverage requirements pass, or every pre-existing failure is reported with evidence.
 6. **Review the diff as an operator.** Check logs, error responses, migrations, configuration, deployment behavior, observability, and rollback implications. Completion means no secret, authorization bypass, destructive migration, unbounded query, or silently changed public contract remains unexplained.
 
 ## Architecture Rules
@@ -29,7 +29,7 @@ Use this skill to take Python changes from local understanding to production evi
 - Treat database sessions and external clients as dependencies with clear lifetimes. Do not create hidden connections, mutable module-global state, or per-request resources that cannot be closed.
 - Keep workers idempotent. Define retry behavior, deduplication keys, visibility timeouts, and failure handling before adding side effects.
 - For schema changes, inspect the query patterns and deployment order. Prefer additive, backward-compatible migrations; separate data backfills from DDL when locks or volume make a combined migration risky.
-- In a monorepo, respect package ownership and dependency direction. Shared libraries may not import application-specific modules merely to avoid a boundary decision.
+- Respect package ownership and dependency direction. Shared libraries should not import application-specific modules merely to avoid a boundary decision.
 
 ## Security Gate
 
@@ -47,25 +47,18 @@ Apply this gate to every change that handles identity, permissions, secrets, fil
 
 ## Validation Matrix
 
-Discover the repository's authoritative commands from `pyproject.toml`, package configuration, Nx targets, `Makefile`, or CI before inventing commands.
+Discover the repository's authoritative commands from `pyproject.toml`, package configuration, `Makefile`, task runner configuration, or CI before inventing commands. Prefer the narrowest available checks first, followed by broader checks when the change crosses package boundaries or affects shared behavior.
 
-For an Nx + uv Python monorepo, prefer this order:
+Typical Python checks may include, when the project already configures them:
 
 ```bash
-# Focused package checks
-pnpm nx run <project>:format
-pnpm nx run <project>:lint
-pnpm nx run <project>:typecheck
-pnpm nx run <project>:test
-
-# Affected checks
-uv run bash scripts/code-validations.sh --fix --base=origin/develop
-
-# Full checks for shared, migration, security, or cross-package changes
-uv run bash scripts/code-validations.sh --fix
+python -m pytest path/to/relevant/tests
+ruff check path/to/changed/code
+ruff format --check path/to/changed/code
+mypy path/to/changed/code
 ```
 
-Adapt the commands when the repository uses another runner. A passing formatter is not a substitute for tests; passing tests are not a substitute for type checking; and coverage must measure meaningful branches rather than only increasing a percentage.
+Use the project's declared environment and runner for these commands. Do not assume that every project uses all of these tools. A passing formatter is not a substitute for tests; passing tests are not a substitute for type checking; and coverage must measure meaningful branches rather than only increasing a percentage.
 
 Do not silence failures with `# noqa`, `# type: ignore`, disabled rules, skipped tests, weakened assertions, or removed validation. Fix the underlying behavior, or document a verified external blocker.
 
@@ -101,6 +94,6 @@ Use one of these names when publishing a variant of this skill:
 - `python-backend-engineering` - clearer for API, worker, and service repositories.
 - `python-secure-backend` - use when security review is the primary purpose.
 - `python-architecture-and-quality` - use when architecture and validation matter more than framework guidance.
-- `python-platform-engineering` - use for monorepos, shared libraries, workers, and deployment tooling.
+- `python-platform-engineering` - use for shared libraries, workers, and deployment tooling.
 
 The recommended public name is `python-production-engineering` because it covers development, architecture, security, and evidence without tying the skill to FastAPI or a single repository layout.
